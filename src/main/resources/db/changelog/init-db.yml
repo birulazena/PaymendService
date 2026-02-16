@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-payments
+      author: birulazena
+      changes:
+        - createCollection:
+            collectionName: payments
+
+  - changeSet:
+      id: payments-schema
+      author: birulazena
+      changes:
+        - runCommand:
+            command: |
+              {
+                "collMod": "payments",
+                "validator": {
+                  "$jsonSchema": {
+                    "bsonType": "object",
+                    "required": ["order_id", "user_id", "status", "timestamp", "payment_amount"],
+                    "properties": {
+                      "order_id": { "bsonType": "long" },
+                      "user_id": { "bsonType": "long" },
+                      "status": { "bsonType": "string" },
+                      "timestamp": { "bsonType": "date" },
+                      "payment_amount": { "bsonType": "decimal" }
+                    }
+                  }
+                },
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+
+
+  - changeSet:
+      id: idx-order-id
+      author: birulazena
+      changes:
+        - createIndex:
+            collectionName: payments
+            keys: '{ order_id: 1 }'
+            options: '{ name: "idx_orders_id" }'
+
+  - changeSet:
+      id: idx-user-status-time
+      author: birulazena
+      changes:
+        - createIndex:
+            collectionName: payments
+            keys: '{ user_id: 1, status: 1, timestamp: 1 }'
+            options: '{ name: "idx_user_status_time" }'
+
+  - changeSet:
+      id: idx-status-time
+      author: birulazena
+      changes:
+        - createIndex:
+            collectionName: payments
+            keys: '{ status: 1, timestamp: 1 }'
+            options: '{ name: "idx_status_time" }'
