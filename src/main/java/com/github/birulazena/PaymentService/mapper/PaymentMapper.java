@@ -1,6 +1,7 @@
 package com.github.birulazena.PaymentService.mapper;
 
 import com.github.birulazena.PaymentService.dto.request.PaymentRequestDto;
+import com.github.birulazena.PaymentService.dto.response.event.PaymentEventDto;
 import com.github.birulazena.PaymentService.dto.response.PaymentResponseDto;
 import com.github.birulazena.PaymentService.entity.Payment;
 import org.mapstruct.Mapper;
@@ -14,5 +15,7 @@ public interface PaymentMapper {
     Payment toEntity(PaymentRequestDto paymentRequestDto);
 
     PaymentResponseDto toPaymentResponseDto(Payment payment);
+
+    PaymentEventDto toPaymentEventDto(Payment payment);
 
 }

@@ -1,6 +1,5 @@
 package com.github.birulazena.PaymentService.dto.response;
 
-
 import com.github.birulazena.PaymentService.entity.enums.Status;
 
 import java.math.BigDecimal;
