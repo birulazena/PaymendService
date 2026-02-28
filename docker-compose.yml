@@ -1,0 +1,86 @@
+services:
+  mongo:
+    image: mongo:8.2.4
+    container_name: mongo
+    command: ["bash", "/scripts/mongo-start.sh"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./scripts/mongo-start.sh:/scripts/mongo-start.sh:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo-setup:
+    image: mongo:8.2.4
+    container_name: mongo-setup
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - ./scripts/init-replica-set.js:/scripts/init-replica-set.js:ro
+    command: >
+      bash -c "
+      sleep 2 &&
+      mongosh \"mongodb://$$MONGO_ROOT_USERNAME:$$MONGO_ROOT_PASSWORD@mongo:27017/admin\" /scripts/init-replica-set.js
+      "
+
+  kafka:
+    image: apache/kafka:3.9.2
+    container_name: kafka
+    ports:
+      - "9094:9094"
+    environment:
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS}
+      KAFKA_LOG_SEGMENT_BYTES: ${KAFKA_LOG_SEGMENT_BYTES}
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  payment-service-app:
+    build: .
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-setup:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      MONGO_URI: ${MONGO_URI}
+      RANDOM_NUMBER_URL: ${RANDOM_NUMBER_URL}
+      KAFKA_TOPIC_PAYMENT_EVENTS_NAME: ${KAFKA_TOPIC_PAYMENT_EVENTS_NAME}
+      KAFKA_TOPIC_PAYMENT_EVENTS_PARTITIONS: ${KAFKA_TOPIC_PAYMENT_EVENTS_PARTITIONS}
+      KAFKA_TOPIC_PAYMENT_EVENTS_REPLICAS: ${KAFKA_TOPIC_PAYMENT_EVENTS_REPLICAS}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8084:8080"
+
+volumes:
+  mongo_data:
+  kafka_data:
