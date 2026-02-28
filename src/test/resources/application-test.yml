@@ -1,0 +1,6 @@
+JWT_SECRET: KEysWF5PUPofYmqWaCLm2ohD8a+aAnSfKMp12bdMVUYcxeOHBUhEjPzn5LNiExB5px+Mg2gqVmzBxNEOyxSTOQ==
+RANDOM_NUMBER_URL: http://www.randomnumberapi.com/api/v1.0/random
+ACCESS_EXPIRATION: 86400000
+spring:
+  mongodb:
+    uri: MONGO_URI=mongodb://mongo_user:mongo_pass@mongo:27017/payments_db?authSource=admin
