@@ -45,6 +45,11 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-kafka-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-security-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+	testImplementation("org.wiremock.integrations.testcontainers:wiremock-testcontainers-module:1.0-alpha-15")
+	testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.2")
+	testImplementation("org.wiremock:wiremock:3.13.1")
+	testImplementation ("org.testcontainers:testcontainers-kafka")
+	testImplementation ("org.testcontainers:testcontainers-mongodb")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
