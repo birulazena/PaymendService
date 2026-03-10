@@ -58,3 +58,54 @@ databaseChangeLog:
             collectionName: payments
             keys: '{ status: 1, timestamp: 1 }'
             options: '{ name: "idx_status_time" }'
+
+
+  - changeSet:
+      id: create-outbox-events
+      author: birulazena
+      changes:
+        - createCollection:
+            collectionName: outbox_events
+
+  - changeSet:
+      id: outbox-events-schema
+      author: birulazena
+      changes:
+        - runCommand:
+            command: |
+              {
+                "collMod": "outbox_events",
+                "validator": {
+                  "$jsonSchema": {
+                    "bsonType": "object",
+                    "required": ["aggregate_id", "event_type", "payload", "status", "created_at"],
+                    "properties": {
+                      "aggregate_id": { "bsonType": "string" },
+                      "event_type": { "bsonType": "string" },
+                      "payload": { "bsonType": "string" },
+                      "status": { "bsonType": "string" },
+                      "created_at": { "bsonType": "date" }
+                    }
+                  }
+                },
+                "validationAction": "error",
+                "validationLevel": "strict"
+              }
+
+  - changeSet:
+      id: idx-outbox-status-created
+      author: birulazena
+      changes:
+        - createIndex:
+            collectionName: outbox_events
+            keys: '{ status: 1, created_at: 1 }'
+            options: '{ name: "idx_status_created_at" }'
+
+  - changeSet:
+      id: outbox-ttl-index
+      author: birulazena
+      changes:
+        - createIndex:
+            collectionName: outbox_events
+            keys: '{ created_at: 1 }'
+            options: '{ name: "idx_outbox_ttl", expireAfterSeconds: 86400 }'

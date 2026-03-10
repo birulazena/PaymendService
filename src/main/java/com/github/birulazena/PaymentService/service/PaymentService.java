@@ -4,13 +4,18 @@ import com.github.birulazena.PaymentService.client.ExternalRandomNumberClient;
 import com.github.birulazena.PaymentService.client.dto.RandomNumberDto;
 import com.github.birulazena.PaymentService.dto.request.PaymentRequestDto;
 import com.github.birulazena.PaymentService.dto.response.GlobalTotalSumResponseDto;
+import com.github.birulazena.PaymentService.dto.response.event.PaymentEventDto;
 import com.github.birulazena.PaymentService.dto.response.PaymentResponseDto;
 import com.github.birulazena.PaymentService.dto.response.UserTotalSumResponseDto;
+import com.github.birulazena.PaymentService.entity.OutboxEvent;
 import com.github.birulazena.PaymentService.entity.Payment;
+import com.github.birulazena.PaymentService.entity.enums.EventType;
+import com.github.birulazena.PaymentService.entity.enums.OutboxStatus;
 import com.github.birulazena.PaymentService.entity.enums.Status;
 import com.github.birulazena.PaymentService.exception.ExternalNotFoundException;
 import com.github.birulazena.PaymentService.filter.PaymentFilter;
 import com.github.birulazena.PaymentService.mapper.PaymentMapper;
+import com.github.birulazena.PaymentService.repository.OutboxEventRepository;
 import com.github.birulazena.PaymentService.repository.PaymentRepository;
 import com.github.birulazena.PaymentService.util.NumberUtils;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +23,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -29,12 +34,17 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PaymentService {
 
+    private final ObjectMapper objectMapper;
+
+    private final OutboxEventRepository outboxEventRepository;
+
     private final PaymentRepository paymentRepository;
 
     private final ExternalRandomNumberClient client;
 
     private final PaymentMapper paymentMapper;
 
+    @Transactional
     public PaymentResponseDto createPayment(Long userId, PaymentRequestDto paymentRequestDto) {
         Optional<Payment> successPayment = paymentRepository.findAllByFilter(
                 new PaymentFilter(userId, paymentRequestDto.orderId(), Status.SUCCESS),
@@ -49,7 +59,6 @@ public class PaymentService {
         payment.setUserId(userId);
 
         RandomNumberDto randomNumberDto = client.getRandomNumber();
-
         if(randomNumberDto.number() == null)
             throw new ExternalNotFoundException("Random number client not found");
 
@@ -60,6 +69,8 @@ public class PaymentService {
         }
 
         Payment savePayment = paymentRepository.save(payment);
+
+        saveOutboxEvent(savePayment);
 
         return paymentMapper.toPaymentResponseDto(savePayment);
     }
@@ -79,6 +90,21 @@ public class PaymentService {
         return new GlobalTotalSumResponseDto(sum);
     }
 
+    private void saveOutboxEvent(Payment payment) {
+        PaymentEventDto paymentEventDto = paymentMapper.toPaymentEventDto(payment);
+        String payload = objectMapper.writeValueAsString(paymentEventDto);
 
+        OutboxEvent event = new OutboxEvent();
+        event.setAggregateId(paymentEventDto.orderId().toString());
+        if(paymentEventDto.status().equals(Status.SUCCESS)) {
+            event.setEventType(EventType.PAYMENT_SUCCESS);
+        } else {
+            event.setEventType(EventType.PAYMENT_FAILED);
+        }
+        event.setPayload(payload);
+        event.setStatus(OutboxStatus.PENDING);
+
+        outboxEventRepository.save(event);
+    }
 
 }

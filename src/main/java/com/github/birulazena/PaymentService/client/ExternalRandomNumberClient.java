@@ -36,7 +36,7 @@ public class ExternalRandomNumberClient {
         throw new InvalidExternalResponseException("Received response is empty or null");
     }
 
-    public RandomNumberDto getRandomNumberFallback() {
+    public RandomNumberDto getRandomNumberFallback(Throwable throwable) {
         return new RandomNumberDto(null);
     }
 

@@ -1,3 +1,17 @@
+spring:
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+app:
+  kafka:
+    topics:
+      payment-events:
+        name: ${KAFKA_TOPIC_PAYMENT_EVENTS_NAME}
+        partitions: ${KAFKA_TOPIC_PAYMENT_EVENTS_PARTITIONS}
+        replicas: ${KAFKA_TOPIC_PAYMENT_EVENTS_REPLICAS}
+
 external:
   random-number:
     url: ${RANDOM_NUMBER_URL}
