@@ -30,13 +30,13 @@ public class JwtFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String tokenHead = request.getHeader("Authorization");
-        String token;
+        if (tokenHead == null || !tokenHead.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
+        String token = tokenHead.substring(7);
         try {
-            if (tokenHead == null || !tokenHead.startsWith("Bearer "))
-                throw new InvalidTokenException("Invalid or missing Authorization header");
-
-            token = tokenHead.substring(7);
             if(!jwtService.validateToken(token))
                 throw new InvalidTokenException("Invalid token");
         } catch (InvalidTokenException ex) {
