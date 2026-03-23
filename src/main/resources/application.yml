@@ -1,4 +1,7 @@
 spring:
+  application:
+    name: payment-service
+
   kafka:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -42,3 +45,19 @@ management:
       probes:
         enabled: true
       show-details: when_authorized
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    metrics:
+      export:
+        url: ${OTLP_METRICS_URL}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_URL}
+    logging:
+      export:
+        otlp:
+          endpoint: ${OTLP_LOGS_URL}
